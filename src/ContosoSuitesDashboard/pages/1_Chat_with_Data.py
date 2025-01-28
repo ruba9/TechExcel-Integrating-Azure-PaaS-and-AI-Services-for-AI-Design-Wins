@@ -16,7 +16,10 @@ def create_chat_completion(messages):
     token_provider = get_bearer_token_provider(
         DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
     )
-    
+    search_endpoint = st.secrets["search"]["endpoint"]
+    search_key = st.secrets["search"]["key"]
+    search_index_name = st.secrets["search"]["index_name"]
+
     aoai_endpoint = st.secrets["aoai"]["endpoint"]
     aoai_deployment_name = st.secrets["aoai"]["deployment_name"]
 
@@ -25,15 +28,31 @@ def create_chat_completion(messages):
         api_version="2024-06-01",
         azure_endpoint = aoai_endpoint
     )
-    # Create and return a new chat completion request
+    # Create and return a new chat completion reques
     return client.chat.completions.create(
-        model=aoai_deployment_name,
-        messages=[
-            {"role": m["role"], "content": m["content"]}
-            for m in messages
-        ],
-        stream=True
-    )
+          model=aoai_deployment_name,
+          messages=[
+              {"role": m["role"], "content": m["content"]}
+              for m in messages
+          ],
+          stream=True,
+          extra_body={
+              "data_sources": [
+                  {
+                      "type": "azure_search",
+                      "parameters": {
+                          "endpoint": search_endpoint,
+                          "index_name": search_index_name,
+                          "authentication": {
+                              "type": "api_key",
+                              "key": search_key
+                          }
+                      }
+                  }
+              ]
+          }
+      )
+
 
 def handle_chat_prompt(prompt):
     """Echo the user's prompt to the chat window.
